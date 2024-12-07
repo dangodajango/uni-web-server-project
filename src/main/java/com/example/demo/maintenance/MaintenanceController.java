@@ -4,22 +4,31 @@ import com.example.demo.maintenance.model.CreateMaintenanceDTO;
 import com.example.demo.maintenance.model.MonthlyRequestsReportDTO;
 import com.example.demo.maintenance.model.ResponseMaintenanceDTO;
 import com.example.demo.maintenance.model.UpdateMaintenanceDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/maintenance")
+@RequiredArgsConstructor
 public class MaintenanceController {
 
+    private final MaintenanceService maintenanceService;
+
     @GetMapping
-    public List<ResponseMaintenanceDTO> readAll() {
-        return null;
+    public List<ResponseMaintenanceDTO> readAll(
+            @RequestParam(required = false) Integer carId,
+            @RequestParam(required = false) Integer garageId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) Integer endDate
+    ) {
+        return maintenanceService.readAll(carId, garageId, startDate, endDate);
     }
 
     @GetMapping("/{id}")
     public ResponseMaintenanceDTO readById(@PathVariable Integer id) {
-        return null;
+        return maintenanceService.readById(id);
     }
 
     @GetMapping("/monthlyRequestsReport")
@@ -27,21 +36,21 @@ public class MaintenanceController {
             @RequestParam Integer garageId,
             @RequestParam String startMonth,
             @RequestParam String endMonth) {
-        return null;
+        return maintenanceService.getMonthlyRequestsReport(garageId, startMonth, endMonth);
     }
 
     @PostMapping
     public ResponseMaintenanceDTO create(@RequestBody CreateMaintenanceDTO createMaintenanceDTO) {
-        return null;
+        return maintenanceService.create(createMaintenanceDTO);
     }
 
     @PutMapping("/{id}")
     public ResponseMaintenanceDTO update(@PathVariable Integer id, @RequestBody UpdateMaintenanceDTO updateMaintenanceDTO) {
-        return null;
+        return maintenanceService.update(id, updateMaintenanceDTO);
     }
 
     @DeleteMapping("/{id}")
     public boolean delete(@PathVariable Integer id) {
-        return false;
+        return maintenanceService.delete(id);
     }
 }
