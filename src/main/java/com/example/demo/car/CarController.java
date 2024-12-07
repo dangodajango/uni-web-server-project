@@ -1,4 +1,4 @@
-package com.example.demo.car.controller;
+package com.example.demo.car;
 
 import com.example.demo.car.model.CreateCarDTO;
 import com.example.demo.car.model.ResponseCarDTO;
@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@RestController
 @RequestMapping("/cars")
 public class CarController {
 
