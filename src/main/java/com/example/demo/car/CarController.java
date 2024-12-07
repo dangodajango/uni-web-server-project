@@ -21,7 +21,7 @@ public class CarController {
         return List.of();
     }
 
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     public ResponseCarDTO readById(@PathVariable Integer id) {
         return new ResponseCarDTO(1, "make", "model", 0, "licensePlate", List.of());
     }
@@ -31,12 +31,12 @@ public class CarController {
         return new ResponseCarDTO(1, "make", "model", 0, "licensePlate", List.of());
     }
 
-    @PutMapping("{id}")
+    @PutMapping("/{id}")
     public ResponseCarDTO update(@PathVariable Integer id, @RequestBody UpdateCarDTO createCarDTO) {
         return new ResponseCarDTO(1, "make", "model", 0, "licensePlate", List.of());
     }
 
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public boolean delete(@PathVariable Integer id) {
         return true;
     }

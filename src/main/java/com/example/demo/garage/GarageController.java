@@ -1,6 +1,7 @@
 package com.example.demo.garage;
 
 import com.example.demo.garage.model.CreateGarageDTO;
+import com.example.demo.garage.model.DailyAvailabilityReportDTO;
 import com.example.demo.garage.model.ResponseGarageDTO;
 import com.example.demo.garage.model.UpdateGarageDTO;
 import org.springframework.web.bind.annotation.*;
@@ -16,8 +17,16 @@ public class GarageController {
         return null;
     }
 
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     public ResponseGarageDTO readById(@PathVariable Integer id) {
+        return null;
+    }
+
+    @GetMapping("/dailyAvailabilityReport")
+    public List<DailyAvailabilityReportDTO> getDailyAvailabilityReport(
+            @RequestParam Integer garageId,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
         return null;
     }
 
@@ -26,12 +35,12 @@ public class GarageController {
         return null;
     }
 
-    @PutMapping("{id}")
+    @PutMapping("/{id}")
     public ResponseGarageDTO update(@PathVariable Integer id, @RequestBody UpdateGarageDTO updateGarageDTO) {
         return null;
     }
 
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public boolean delete(@PathVariable Integer id) {
         return false;
     }
