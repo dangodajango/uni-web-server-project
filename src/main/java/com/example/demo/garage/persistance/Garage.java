@@ -1,7 +1,10 @@
 package com.example.demo.garage.persistance;
 
+import com.example.demo.car.persistance.Car;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.Set;
 
 @Entity
 @Table(name = "garage")
@@ -23,4 +26,7 @@ public class Garage {
     private String city;
 
     private Integer capacity;
+
+    @ManyToMany(mappedBy = "garages")
+    private Set<Car> cars;
 }

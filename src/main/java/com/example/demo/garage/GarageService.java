@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import static com.example.demo.util.FieldUtils.updateFieldIfNotNull;
 import static java.util.Objects.isNull;
 
 @Service
@@ -49,18 +50,10 @@ public class GarageService {
 
     public ResponseGarageDTO update(Integer id, UpdateGarageDTO dto) {
         Garage garage = garageRepository.findById(id).orElseThrow(IllegalArgumentException::new);
-        if (!isNull(dto.name())) {
-            garage.setName(dto.name());
-        }
-        if (!isNull(dto.location())) {
-            garage.setLocation(dto.location());
-        }
-        if (!isNull(dto.city())) {
-            garage.setCity(dto.city());
-        }
-        if (!isNull(dto.capacity())) {
-            garage.setCapacity(dto.capacity());
-        }
+        updateFieldIfNotNull(dto::name, garage::setName);
+        updateFieldIfNotNull(dto::location, garage::setLocation);
+        updateFieldIfNotNull(dto::city, garage::setCity);
+        updateFieldIfNotNull(dto::capacity, garage::setCapacity);
         return new ResponseGarageDTO(garage.getId(), garage.getName(), garage.getLocation(), garage.getCity(), garage.getCapacity());
     }
 
