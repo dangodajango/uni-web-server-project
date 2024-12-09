@@ -30,7 +30,7 @@ public class Car {
     @Column(name = "license_palte")
     private String licensePlate;
 
-    @ManyToMany(cascade = CascadeType.ALL)
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "car_garages",
             joinColumns = @JoinColumn(name = "car_id"),

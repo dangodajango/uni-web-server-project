@@ -27,6 +27,6 @@ public class Garage {
 
     private Integer capacity;
 
-    @ManyToMany(mappedBy = "garages")
+    @ManyToMany(mappedBy = "garages", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<Car> cars;
 }

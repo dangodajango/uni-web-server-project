@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -57,15 +58,15 @@ public class CarService {
     }
 
     private boolean isProductionYearInRange(Integer productionYear, Integer fromYear, Integer toYear) {
-        boolean isHigherThanFromYear = false;
+        boolean isAfterFromYear = true;
         if (fromYear != null) {
-            isHigherThanFromYear = productionYear >= fromYear;
+            isAfterFromYear = productionYear >= fromYear;
         }
-        boolean isLowerThanToYear = false;
+        boolean isBeforeToYear = true;
         if (toYear != null) {
-            isLowerThanToYear = productionYear <= toYear;
+            isBeforeToYear = productionYear <= toYear;
         }
-        return isHigherThanFromYear && isLowerThanToYear;
+        return isAfterFromYear && isBeforeToYear;
     }
 
     public ResponseCarDTO readById(Integer id) {
@@ -73,6 +74,7 @@ public class CarService {
         return mapToResponseCarDTO(car);
     }
 
+    @Transactional
     public ResponseCarDTO create(CreateCarDTO dto) {
         Set<Garage> garages = findGarages(dto.garageIds());
         Car car = Car.builder()
@@ -86,6 +88,7 @@ public class CarService {
         return mapToResponseCarDTO(car);
     }
 
+    @Transactional
     public ResponseCarDTO update(Integer id, UpdateCarDTO dto) {
         Car car = carRepository.findById(id).orElseThrow(IllegalArgumentException::new);
         updateFieldIfNotNull(dto::make, car::setMake);
@@ -104,9 +107,11 @@ public class CarService {
         return new HashSet<>(garages);
     }
 
+    @Transactional
     public boolean delete(Integer id) {
         Car car = carRepository.findById(id).orElseThrow(IllegalArgumentException::new);
         try {
+            car.getGarages().forEach(garage -> garage.getCars().remove(car));
             carRepository.delete(car);
             return true;
         } catch (Exception exception) {

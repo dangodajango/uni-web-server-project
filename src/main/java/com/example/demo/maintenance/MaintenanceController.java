@@ -7,6 +7,7 @@ import com.example.demo.maintenance.model.UpdateMaintenanceDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,8 +21,8 @@ public class MaintenanceController {
     public List<ResponseMaintenanceDTO> readAll(
             @RequestParam(required = false) Integer carId,
             @RequestParam(required = false) Integer garageId,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) Integer endDate
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate
     ) {
         return maintenanceService.readAll(carId, garageId, startDate, endDate);
     }

@@ -9,6 +9,7 @@ import com.example.demo.garage.persistance.GarageRepository;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -37,6 +38,7 @@ public class GarageService {
         return null;
     }
 
+    @Transactional
     public ResponseGarageDTO create(CreateGarageDTO dto) {
         Garage garage = Garage.builder()
                 .name(dto.name())
@@ -48,6 +50,7 @@ public class GarageService {
         return new ResponseGarageDTO(garage.getId(), garage.getName(), garage.getLocation(), garage.getCity(), garage.getCapacity());
     }
 
+    @Transactional
     public ResponseGarageDTO update(Integer id, UpdateGarageDTO dto) {
         Garage garage = garageRepository.findById(id).orElseThrow(IllegalArgumentException::new);
         updateFieldIfNotNull(dto::name, garage::setName);
@@ -57,9 +60,11 @@ public class GarageService {
         return new ResponseGarageDTO(garage.getId(), garage.getName(), garage.getLocation(), garage.getCity(), garage.getCapacity());
     }
 
+    @Transactional
     public boolean delete(Integer id) {
         Garage garage = garageRepository.findById(id).orElseThrow(IllegalArgumentException::new);
         try {
+            garage.getCars().forEach(car -> car.getGarages().remove(garage));
             garageRepository.delete(garage);
             return true;
         } catch (Exception exception) {
