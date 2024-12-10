@@ -7,6 +7,7 @@ import com.example.demo.garage.model.UpdateGarageDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -29,8 +30,8 @@ public class GarageController {
     @GetMapping("/dailyAvailabilityReport")
     public List<DailyAvailabilityReportDTO> getDailyAvailabilityReport(
             @RequestParam Integer garageId,
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate) {
         return garageService.getDailyAvailabilityReport(garageId, startDate, endDate);
     }
 

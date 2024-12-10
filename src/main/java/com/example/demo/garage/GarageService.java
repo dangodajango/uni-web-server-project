@@ -6,12 +6,17 @@ import com.example.demo.garage.model.ResponseGarageDTO;
 import com.example.demo.garage.model.UpdateGarageDTO;
 import com.example.demo.garage.persistance.Garage;
 import com.example.demo.garage.persistance.GarageRepository;
+import com.example.demo.maintenance.persistance.Maintenance;
+import com.example.demo.maintenance.persistance.MaintenanceRepository;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.example.demo.util.FieldUtils.updateFieldIfNotNull;
 import static java.util.Objects.isNull;
@@ -21,6 +26,8 @@ import static java.util.Objects.isNull;
 public class GarageService {
 
     private final GarageRepository garageRepository;
+
+    private final MaintenanceRepository maintenanceRepository;
 
     public List<ResponseGarageDTO> readAll(@Nullable String city) {
         List<Garage> garages = isNull(city) ? garageRepository.findAll() : garageRepository.findByCity(city);
@@ -34,8 +41,22 @@ public class GarageService {
         return new ResponseGarageDTO(garage.getId(), garage.getName(), garage.getLocation(), garage.getCity(), garage.getCapacity());
     }
 
-    public List<DailyAvailabilityReportDTO> getDailyAvailabilityReport(Integer garageId, String startDate, String endDate) {
-        return null;
+    public List<DailyAvailabilityReportDTO> getDailyAvailabilityReport(Integer garageId, LocalDate startDate, LocalDate endDate) {
+        Garage garage = garageRepository.findById(garageId).orElseThrow(IllegalArgumentException::new);
+        Map<LocalDate, List<Maintenance>> maintenances = maintenanceRepository.findByGarageId(garageId).stream()
+                .filter(maintenance -> isScheduledDateInRange(maintenance.getScheduledDate(), startDate, endDate))
+                .collect(Collectors.groupingBy(Maintenance::getScheduledDate));
+        return maintenances.entrySet().stream()
+                .map(entry -> {
+                    LocalDate date = entry.getKey();
+                    int maintenanceRequests = entry.getValue().size();
+                    int availableCapacity = garage.getCapacity();
+                    return new DailyAvailabilityReportDTO(date, maintenanceRequests, availableCapacity);
+                }).toList();
+    }
+
+    private boolean isScheduledDateInRange(LocalDate scheduledDate, LocalDate startDate, LocalDate endDate) {
+        return scheduledDate.isAfter(startDate) && scheduledDate.isBefore(endDate);
     }
 
     @Transactional
@@ -43,7 +64,7 @@ public class GarageService {
         Garage garage = Garage.builder()
                 .name(dto.name())
                 .location(dto.location())
-                .city(dto.city())
+                .city(dto.City())
                 .capacity(dto.capacity())
                 .build();
         garageRepository.save(garage);
