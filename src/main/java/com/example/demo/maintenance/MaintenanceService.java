@@ -10,7 +10,6 @@ import com.example.demo.maintenance.model.ResponseMaintenanceDTO;
 import com.example.demo.maintenance.model.UpdateMaintenanceDTO;
 import com.example.demo.maintenance.persistance.Maintenance;
 import com.example.demo.maintenance.persistance.MaintenanceRepository;
-import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
-import static com.example.demo.util.FieldUtils.updateFieldIfNotNull;
 import static java.util.Objects.isNull;
 
 @Service
@@ -33,11 +31,7 @@ public class MaintenanceService {
 
     private final GarageRepository garageRepository;
 
-    public List<ResponseMaintenanceDTO> readAll(
-            @Nullable Integer carId,
-            @Nullable Integer garageId,
-            @Nullable LocalDate startDate,
-            @Nullable LocalDate endDate) {
+    public List<ResponseMaintenanceDTO> readAll(Integer carId, Integer garageId, LocalDate startDate, LocalDate endDate) {
         Maintenance probe = prepareMaintenanceProbe(carId, garageId);
         ExampleMatcher matcher = ExampleMatcher.matching().withIgnoreNullValues();
         Example<Maintenance> exampleMaintenance = Example.of(probe, matcher);
@@ -85,8 +79,12 @@ public class MaintenanceService {
 
     @Transactional
     public ResponseMaintenanceDTO create(CreateMaintenanceDTO dto) {
-        Car car = carRepository.findById(dto.carId()).orElseThrow(IllegalArgumentException::new);
         Garage garage = garageRepository.findById(dto.garageId()).orElseThrow(IllegalArgumentException::new);
+        Car car = carRepository.findById(dto.carId()).orElseThrow(IllegalArgumentException::new);
+
+        verifyGarageHasEnoughCapacity(garage, dto.scheduledDate());
+        verifyCarIsRegisteredInSpecificGarage(car, garage);
+
         Maintenance maintenance = Maintenance.builder()
                 .car(car)
                 .garage(garage)
@@ -100,15 +98,37 @@ public class MaintenanceService {
     @Transactional
     public ResponseMaintenanceDTO update(Integer id, UpdateMaintenanceDTO dto) {
         Maintenance maintenance = maintenanceRepository.findById(id).orElseThrow(IllegalArgumentException::new);
-        updateFieldIfNotNull(dto::carId, carId -> maintenance.setCar(
-                carRepository.findById(carId).orElseThrow(IllegalArgumentException::new))
-        );
-        updateFieldIfNotNull(dto::garageId, garageId -> maintenance.setGarage(
-                garageRepository.findById(garageId).orElseThrow(IllegalArgumentException::new))
-        );
-        updateFieldIfNotNull(dto::serviceType, maintenance::setServiceType);
-        updateFieldIfNotNull(dto::scheduledDate, maintenance::setScheduledDate);
+
+        Garage garage = dto.garageId() != null ? garageRepository.findById(dto.garageId()).orElseThrow(IllegalArgumentException::new) : maintenance.getGarage();
+        Car car = dto.carId() != null ? carRepository.findById(dto.carId()).orElseThrow(IllegalArgumentException::new) : maintenance.getCar();
+        LocalDate scheduledDate = dto.scheduledDate() != null ? dto.scheduledDate() : maintenance.getScheduledDate();
+        String serviceType = dto.serviceType() != null ? dto.serviceType() : maintenance.getServiceType();
+
+        verifyGarageHasEnoughCapacity(garage, scheduledDate);
+        verifyCarIsRegisteredInSpecificGarage(car, garage);
+
+        updateMaintenanceEntity(maintenance, garage, car, scheduledDate, serviceType);
         return mapToResponseMaintenanceDTO(maintenance);
+    }
+
+    private void updateMaintenanceEntity(Maintenance maintenance, Garage garage, Car car, LocalDate scheduledDate, String serviceType) {
+        maintenance.setGarage(garage);
+        maintenance.setCar(car);
+        maintenance.setScheduledDate(scheduledDate);
+        maintenance.setServiceType(serviceType);
+    }
+
+    public void verifyGarageHasEnoughCapacity(Garage garage, LocalDate scheduledDate) {
+        List<Maintenance> maintenances = maintenanceRepository.findByGarageIdAndScheduledDate(garage.getId(), scheduledDate);
+        if (garage.getCapacity() <= maintenances.size()) {
+            throw new IllegalStateException();
+        }
+    }
+
+    private void verifyCarIsRegisteredInSpecificGarage(Car car, Garage garage) {
+        if (!garage.getCars().contains(car)) {
+            throw new IllegalStateException();
+        }
     }
 
     @Transactional
