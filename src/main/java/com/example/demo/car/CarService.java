@@ -8,10 +8,7 @@ import com.example.demo.car.persistance.CarRepository;
 import com.example.demo.garage.model.ResponseGarageDTO;
 import com.example.demo.garage.persistance.Garage;
 import com.example.demo.garage.persistance.GarageRepository;
-import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +17,6 @@ import java.util.List;
 import java.util.Set;
 
 import static com.example.demo.util.FieldUtils.updateFieldIfNotNull;
-import static java.util.Objects.isNull;
 
 @Service
 @RequiredArgsConstructor
@@ -30,31 +26,11 @@ public class CarService {
 
     private final GarageRepository garageRepository;
 
-    public List<ResponseCarDTO> readAll(
-            @Nullable String carMake,
-            @Nullable Integer garageId,
-            @Nullable Integer fromYear,
-            @Nullable Integer toYear) {
-        Car probe = prepareCarProbe(carMake, garageId);
-        ExampleMatcher matcher = ExampleMatcher.matching().withIgnoreNullValues();
-        Example<Car> exampleCar = Example.of(probe, matcher);
-        return carRepository.findAll(exampleCar).stream()
+    public List<ResponseCarDTO> readAll(String carMake, Integer garageId, Integer fromYear, Integer toYear) {
+        return carRepository.findByMakeAndGaragesId(carMake, garageId).stream()
                 .filter(car -> isProductionYearInRange(car.getProductionYear(), fromYear, toYear))
                 .map(this::mapToResponseCarDTO)
                 .toList();
-    }
-
-    private Car prepareCarProbe(String carMake, Integer garageId) {
-        Car probe = new Car();
-        if (!isNull(carMake)) {
-            probe.setMake(carMake);
-        }
-        if (!isNull(garageId)) {
-            Garage garage = new Garage();
-            garage.setId(garageId);
-            probe.setGarages(Set.of(garage));
-        }
-        return probe;
     }
 
     private boolean isProductionYearInRange(Integer productionYear, Integer fromYear, Integer toYear) {

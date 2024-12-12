@@ -10,4 +10,6 @@ public interface MaintenanceRepository extends JpaRepository<Maintenance, Intege
     List<Maintenance> findByGarageId(Integer garageId);
 
     List<Maintenance> findByGarageIdAndScheduledDate(Integer garageId, LocalDate scheduledDate);
+
+    List<Maintenance> findByGarageIdAndCarId(Integer garageId, Integer carId);
 }
