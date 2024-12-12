@@ -1,10 +1,12 @@
 package com.example.demo.car;
 
+import com.example.demo.car.exception.CarNotFoundException;
 import com.example.demo.car.model.CreateCarDTO;
 import com.example.demo.car.model.ResponseCarDTO;
 import com.example.demo.car.model.UpdateCarDTO;
 import com.example.demo.car.persistance.Car;
 import com.example.demo.car.persistance.CarRepository;
+import com.example.demo.garage.exception.GarageNotFoundException;
 import com.example.demo.garage.model.ResponseGarageDTO;
 import com.example.demo.garage.persistance.Garage;
 import com.example.demo.garage.persistance.GarageRepository;
@@ -15,8 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import static com.example.demo.util.FieldUtils.updateFieldIfNotNull;
+import static com.example.demo.common.util.FieldUtils.updateFieldIfNotNull;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +49,7 @@ public class CarService {
     }
 
     public ResponseCarDTO readById(Integer id) {
-        Car car = carRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Car car = carRepository.findById(id).orElseThrow(() -> new CarNotFoundException(id));
         return mapToResponseCarDTO(car);
     }
 
@@ -66,7 +69,7 @@ public class CarService {
 
     @Transactional
     public ResponseCarDTO update(Integer id, UpdateCarDTO dto) {
-        Car car = carRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Car car = carRepository.findById(id).orElseThrow(() -> new CarNotFoundException(id));
         updateFieldIfNotNull(dto::make, car::setMake);
         updateFieldIfNotNull(dto::model, car::setModel);
         updateFieldIfNotNull(dto::productionYear, car::setProductionYear);
@@ -77,15 +80,24 @@ public class CarService {
 
     private Set<Garage> findGarages(List<Integer> garageIds) {
         List<Garage> garages = garageRepository.findAllById(garageIds);
-        if (garages.size() != garageIds.size()) {
-            throw new IllegalStateException();
+
+        Set<Integer> existingGarageIds = garages.stream()
+                .map(Garage::getId)
+                .collect(Collectors.toSet());
+        List<Integer> missingGarageIds = garageIds.stream()
+                .filter(garageId -> !existingGarageIds.contains(garageId))
+                .toList();
+
+        if (!missingGarageIds.isEmpty()) {
+            throw new GarageNotFoundException(missingGarageIds);
         }
+
         return new HashSet<>(garages);
     }
 
     @Transactional
     public boolean delete(Integer id) {
-        Car car = carRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Car car = carRepository.findById(id).orElseThrow(() -> new CarNotFoundException(id));
         try {
             car.getGarages().forEach(garage -> garage.getCars().remove(car));
             carRepository.delete(car);

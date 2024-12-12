@@ -1,9 +1,12 @@
 package com.example.demo.maintenance;
 
+import com.example.demo.car.exception.CarNotFoundException;
 import com.example.demo.car.persistance.Car;
 import com.example.demo.car.persistance.CarRepository;
+import com.example.demo.garage.exception.GarageNotFoundException;
 import com.example.demo.garage.persistance.Garage;
 import com.example.demo.garage.persistance.GarageRepository;
+import com.example.demo.maintenance.exception.MaintenanceNotFoundException;
 import com.example.demo.maintenance.model.*;
 import com.example.demo.maintenance.persistance.Maintenance;
 import com.example.demo.maintenance.persistance.MaintenanceRepository;
@@ -48,7 +51,7 @@ public class MaintenanceService {
     }
 
     public ResponseMaintenanceDTO readById(Integer id) {
-        Maintenance maintenance = maintenanceRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Maintenance maintenance = maintenanceRepository.findById(id).orElseThrow(() -> new MaintenanceNotFoundException(id));
         return mapToResponseMaintenanceDTO(maintenance);
     }
 
@@ -94,10 +97,10 @@ public class MaintenanceService {
 
     @Transactional
     public ResponseMaintenanceDTO update(Integer id, UpdateMaintenanceDTO dto) {
-        Maintenance maintenance = maintenanceRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Maintenance maintenance = maintenanceRepository.findById(id).orElseThrow(() -> new MaintenanceNotFoundException(id));
 
-        Garage garage = dto.garageId() != null ? garageRepository.findById(dto.garageId()).orElseThrow(IllegalArgumentException::new) : maintenance.getGarage();
-        Car car = dto.carId() != null ? carRepository.findById(dto.carId()).orElseThrow(IllegalArgumentException::new) : maintenance.getCar();
+        Garage garage = dto.garageId() != null ? garageRepository.findById(dto.garageId()).orElseThrow(() -> new GarageNotFoundException(dto.garageId())) : maintenance.getGarage();
+        Car car = dto.carId() != null ? carRepository.findById(dto.carId()).orElseThrow(() -> new CarNotFoundException(dto.carId())) : maintenance.getCar();
         LocalDate scheduledDate = dto.scheduledDate() != null ? dto.scheduledDate() : maintenance.getScheduledDate();
         String serviceType = dto.serviceType() != null ? dto.serviceType() : maintenance.getServiceType();
 
@@ -131,7 +134,10 @@ public class MaintenanceService {
     @Transactional
     public boolean delete(Integer id) {
         try {
-            maintenanceRepository.deleteById(id);
+            Maintenance maintenance = maintenanceRepository.findById(id).orElseThrow(() -> new MaintenanceNotFoundException(id));
+            maintenance.setGarage(null);
+            maintenance.setCar(null);
+            maintenanceRepository.delete(maintenance);
             return true;
         } catch (Exception exception) {
             return false;

@@ -1,5 +1,6 @@
 package com.example.demo.garage;
 
+import com.example.demo.garage.exception.GarageNotFoundException;
 import com.example.demo.garage.model.CreateGarageDTO;
 import com.example.demo.garage.model.DailyAvailabilityReportDTO;
 import com.example.demo.garage.model.ResponseGarageDTO;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.example.demo.util.FieldUtils.updateFieldIfNotNull;
+import static com.example.demo.common.util.FieldUtils.updateFieldIfNotNull;
 import static java.util.Objects.isNull;
 
 @Service
@@ -37,12 +38,12 @@ public class GarageService {
     }
 
     public ResponseGarageDTO readById(Integer id) {
-        Garage garage = garageRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Garage garage = garageRepository.findById(id).orElseThrow(() -> new GarageNotFoundException(id));
         return new ResponseGarageDTO(garage.getId(), garage.getName(), garage.getLocation(), garage.getCity(), garage.getCapacity());
     }
 
     public List<DailyAvailabilityReportDTO> getDailyAvailabilityReport(Integer garageId, LocalDate startDate, LocalDate endDate) {
-        Garage garage = garageRepository.findById(garageId).orElseThrow(IllegalArgumentException::new);
+        Garage garage = garageRepository.findById(garageId).orElseThrow(() -> new GarageNotFoundException(garageId));
         Map<LocalDate, List<Maintenance>> maintenances = maintenanceRepository.findByGarageId(garageId).stream()
                 .filter(maintenance -> isScheduledDateInRange(maintenance.getScheduledDate(), startDate, endDate))
                 .collect(Collectors.groupingBy(Maintenance::getScheduledDate));
@@ -73,7 +74,7 @@ public class GarageService {
 
     @Transactional
     public ResponseGarageDTO update(Integer id, UpdateGarageDTO dto) {
-        Garage garage = garageRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Garage garage = garageRepository.findById(id).orElseThrow(() -> new GarageNotFoundException(id));
         updateFieldIfNotNull(dto::name, garage::setName);
         updateFieldIfNotNull(dto::location, garage::setLocation);
         updateFieldIfNotNull(dto::city, garage::setCity);
@@ -83,7 +84,7 @@ public class GarageService {
 
     @Transactional
     public boolean delete(Integer id) {
-        Garage garage = garageRepository.findById(id).orElseThrow(IllegalArgumentException::new);
+        Garage garage = garageRepository.findById(id).orElseThrow(() -> new GarageNotFoundException(id));
         try {
             garage.getCars().forEach(car -> car.getGarages().remove(garage));
             garageRepository.delete(garage);
