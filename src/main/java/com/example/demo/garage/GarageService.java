@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,22 +43,40 @@ public class GarageService {
         return new ResponseGarageDTO(garage.getId(), garage.getName(), garage.getLocation(), garage.getCity(), garage.getCapacity());
     }
 
+    @Transactional
     public List<DailyAvailabilityReportDTO> getDailyAvailabilityReport(Integer garageId, LocalDate startDate, LocalDate endDate) {
         Garage garage = garageRepository.findById(garageId).orElseThrow(() -> new GarageNotFoundException(garageId));
-        Map<LocalDate, List<Maintenance>> maintenances = maintenanceRepository.findByGarageId(garageId).stream()
-                .filter(maintenance -> isScheduledDateInRange(maintenance.getScheduledDate(), startDate, endDate))
+        Map<LocalDate, List<Maintenance>> maintenancesGroupedByScheduledDate = maintenanceRepository.findByGarageIdAndScheduledDateBetween(garageId, startDate, endDate).stream()
                 .collect(Collectors.groupingBy(Maintenance::getScheduledDate));
-        return maintenances.entrySet().stream()
-                .map(entry -> {
-                    LocalDate date = entry.getKey();
-                    int maintenanceRequests = entry.getValue().size();
-                    int availableCapacity = garage.getCapacity();
-                    return new DailyAvailabilityReportDTO(date, maintenanceRequests, availableCapacity);
-                }).toList();
+        return produceDailyAvailabilityReportInRange(maintenancesGroupedByScheduledDate, startDate, endDate, garage);
     }
 
-    private boolean isScheduledDateInRange(LocalDate scheduledDate, LocalDate startDate, LocalDate endDate) {
-        return scheduledDate.isAfter(startDate) && scheduledDate.isBefore(endDate);
+    private List<DailyAvailabilityReportDTO> produceDailyAvailabilityReportInRange(Map<LocalDate, List<Maintenance>> maintenancesGroupedByScheduledDate, LocalDate startDate, LocalDate endDate, Garage garage) {
+        List<DailyAvailabilityReportDTO> dailyAvailabilityReports = new ArrayList<>();
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            if (maintenancesForGivenDateExist(maintenancesGroupedByScheduledDate, currentDate)) {
+                dailyAvailabilityReports.add(createReportWithRequests(garage, currentDate, maintenancesGroupedByScheduledDate));
+            } else {
+                dailyAvailabilityReports.add(createReportWithNoRequests(garage, currentDate));
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+        return dailyAvailabilityReports;
+    }
+
+    private boolean maintenancesForGivenDateExist(Map<LocalDate, List<Maintenance>> maintenancesGroupedByScheduledDate, LocalDate date) {
+        return maintenancesGroupedByScheduledDate.containsKey(date);
+    }
+
+    private DailyAvailabilityReportDTO createReportWithRequests(Garage garage, LocalDate date, Map<LocalDate, List<Maintenance>> maintenancesGroupedByScheduledDate) {
+        int maintenanceRequests = maintenancesGroupedByScheduledDate.get(date).size();
+        int availableCapacity = garage.getCapacity();
+        return new DailyAvailabilityReportDTO(date, maintenanceRequests, availableCapacity);
+    }
+
+    private DailyAvailabilityReportDTO createReportWithNoRequests(Garage garage, LocalDate date) {
+        return new DailyAvailabilityReportDTO(date, 0, garage.getCapacity());
     }
 
     @Transactional
