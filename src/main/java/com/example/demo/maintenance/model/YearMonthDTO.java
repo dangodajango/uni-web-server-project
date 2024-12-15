@@ -1,6 +1,6 @@
 package com.example.demo.maintenance.model;
 
-public record YearMonth(
+public record YearMonthDTO(
         Integer year,
         String month,
         Boolean leapYear,

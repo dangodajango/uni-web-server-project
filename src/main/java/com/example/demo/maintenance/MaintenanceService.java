@@ -15,7 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.Month;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -55,26 +56,55 @@ public class MaintenanceService {
         return mapToResponseMaintenanceDTO(maintenance);
     }
 
-    public List<MonthlyRequestsReportDTO> getMonthlyRequestsReport(Integer garageId, String startMonth, String endMonth) {
-        Map<YearMonth, List<Maintenance>> maintenancesGroupedByYearAndMonth = maintenanceRepository.findByGarageId(garageId).stream()
+    public List<MonthlyRequestsReportDTO> getMonthlyRequestsReport(Integer garageId, YearMonth startMonth, YearMonth endMonth) {
+        Map<YearMonth, List<Maintenance>> maintenancesGroupedByScheduledDate = maintenanceRepository.findByGarageId(garageId).stream()
                 .filter(maintenance -> isScheduledDateInRange(maintenance.getScheduledDate(), startMonth, endMonth))
-                .collect(groupingBy(maintenance -> {
-                    LocalDate scheduledDate = maintenance.getScheduledDate();
-                    return new YearMonth(scheduledDate.getYear(), scheduledDate.getMonth().toString(), scheduledDate.isLeapYear(), scheduledDate.getMonthValue());
-                }));
-        return maintenancesGroupedByYearAndMonth.entrySet().stream()
-                .map(entry -> {
-                    YearMonth yearMonth = entry.getKey();
-                    List<Maintenance> maintenancesPerformedInYearMonth = entry.getValue();
-                    return new MonthlyRequestsReportDTO(yearMonth, maintenancesPerformedInYearMonth.size());
-                }).toList();
+                .collect(groupingBy(maintenance -> YearMonth.from(maintenance.getScheduledDate())));
+        return produceMonthlyRequestsReport(maintenancesGroupedByScheduledDate, startMonth, endMonth);
     }
 
-    private boolean isScheduledDateInRange(LocalDate scheduledDate, String startMonth, String endMonth) {
-        int scheduledDateMonth = scheduledDate.getMonthValue();
-        int startMonthValue = Month.valueOf(startMonth).getValue();
-        int endMonthValue = Month.valueOf(endMonth).getValue();
-        return scheduledDateMonth >= startMonthValue && scheduledDateMonth <= endMonthValue;
+    private boolean isScheduledDateInRange(LocalDate scheduledDate, YearMonth startMonth, YearMonth endMonth) {
+        YearMonth scheduledDateInYearMonthFormat = YearMonth.from(scheduledDate);
+        return startMonth.isBefore(scheduledDateInYearMonthFormat) && endMonth.isAfter(scheduledDateInYearMonthFormat);
+    }
+
+    private List<MonthlyRequestsReportDTO> produceMonthlyRequestsReport(Map<YearMonth, List<Maintenance>> maintenancesGroupedByScheduledDate, YearMonth startMonth, YearMonth endMonth) {
+        List<MonthlyRequestsReportDTO> result = new ArrayList<>();
+        YearMonth currentMonth = startMonth;
+        while (currentMonth.isBefore(endMonth)) {
+            if (maintenanceForGivenYearMonthExist(maintenancesGroupedByScheduledDate, currentMonth)) {
+                result.add(createReportWithRequests(maintenancesGroupedByScheduledDate, currentMonth));
+            } else {
+                result.add(createReportWithoutRequests(currentMonth));
+            }
+            currentMonth = currentMonth.plusMonths(1);
+        }
+        return result;
+    }
+
+    private boolean maintenanceForGivenYearMonthExist(Map<YearMonth, List<Maintenance>> maintenancesGroupedByScheduledDate, YearMonth yearMonth) {
+        return maintenancesGroupedByScheduledDate.containsKey(yearMonth);
+    }
+
+    private MonthlyRequestsReportDTO createReportWithRequests(Map<YearMonth, List<Maintenance>> maintenancesGroupedByScheduledDate, YearMonth currentMonth) {
+        List<Maintenance> maintenancesForCurrentMonth = maintenancesGroupedByScheduledDate.get(currentMonth);
+        Integer numberOfRequests = maintenancesForCurrentMonth.size();
+        YearMonthDTO yearMonthDTO = mapToYearMonthDTO(currentMonth);
+        return new MonthlyRequestsReportDTO(yearMonthDTO, numberOfRequests);
+    }
+
+    private MonthlyRequestsReportDTO createReportWithoutRequests(YearMonth currentMonth) {
+        YearMonthDTO yearMonthDTO = mapToYearMonthDTO(currentMonth);
+        int numberOfRequests = 0;
+        return new MonthlyRequestsReportDTO(yearMonthDTO, numberOfRequests);
+    }
+
+    private YearMonthDTO mapToYearMonthDTO(YearMonth yearMonth) {
+        Integer year = yearMonth.getYear();
+        String month = yearMonth.getMonth().toString();
+        Boolean isLeapYear = yearMonth.isLeapYear();
+        Integer monthValue = yearMonth.getMonthValue();
+        return new YearMonthDTO(year, month, isLeapYear, monthValue);
     }
 
     @Transactional

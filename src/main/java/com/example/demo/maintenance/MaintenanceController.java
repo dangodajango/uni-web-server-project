@@ -5,9 +5,11 @@ import com.example.demo.maintenance.model.MonthlyRequestsReportDTO;
 import com.example.demo.maintenance.model.ResponseMaintenanceDTO;
 import com.example.demo.maintenance.model.UpdateMaintenanceDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 @RestController
@@ -35,8 +37,8 @@ public class MaintenanceController {
     @GetMapping("/monthlyRequestsReport")
     public List<MonthlyRequestsReportDTO> getMonthlyRequestsReport(
             @RequestParam Integer garageId,
-            @RequestParam String startMonth,
-            @RequestParam String endMonth) {
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth startMonth,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth endMonth) {
         return maintenanceService.getMonthlyRequestsReport(garageId, startMonth, endMonth);
     }
 
