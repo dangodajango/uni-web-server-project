@@ -3,6 +3,7 @@ package com.example.demo.maintenance;
 import com.example.demo.car.exception.CarNotFoundException;
 import com.example.demo.car.persistance.Car;
 import com.example.demo.car.persistance.CarRepository;
+import com.example.demo.common.exception.RequestValidationException;
 import com.example.demo.garage.exception.GarageNotFoundException;
 import com.example.demo.garage.persistance.Garage;
 import com.example.demo.garage.persistance.GarageRepository;
@@ -151,13 +152,13 @@ public class MaintenanceService {
     private void verifyGarageHasEnoughCapacity(Garage garage, LocalDate scheduledDate) {
         List<Maintenance> maintenances = maintenanceRepository.findByGarageIdAndScheduledDate(garage.getId(), scheduledDate);
         if (garage.getCapacity() <= maintenances.size()) {
-            throw new IllegalStateException();
+            throw new RequestValidationException("garage with ID %s does not have capacity for date %s".formatted(garage.getId(), scheduledDate));
         }
     }
 
     private void verifyCarIsRegisteredInSpecificGarage(Car car, Garage garage) {
         if (!garage.getCars().contains(car)) {
-            throw new IllegalStateException();
+            throw new RequestValidationException("car with ID %s it not registered in the garage with ID %s".formatted(car.getId(), garage.getId()));
         }
     }
 
