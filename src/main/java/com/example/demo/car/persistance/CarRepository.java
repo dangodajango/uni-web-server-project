@@ -8,7 +8,7 @@ import java.util.List;
 public interface CarRepository extends JpaRepository<Car, Integer> {
 
     @Query("""
-            SELECT c FROM Car c JOIN c.garages g
+            SELECT c FROM Car c LEFT JOIN c.garages g
             WHERE (:make IS NULL OR c.make = :make)
             AND (:garageId IS NULL OR g.id = :garageId)
             """)

@@ -58,6 +58,9 @@ public class MaintenanceService {
     }
 
     public List<MonthlyRequestsReportDTO> getMonthlyRequestsReport(Integer garageId, YearMonth startMonth, YearMonth endMonth) {
+        if (!garageRepository.existsById(garageId)) {
+            throw new RequestValidationException("garage with ID %s does not exist".formatted(garageId));
+        }
         Map<YearMonth, List<Maintenance>> maintenancesGroupedByScheduledDate = maintenanceRepository.findByGarageId(garageId).stream()
                 .filter(maintenance -> isScheduledDateInRange(maintenance.getScheduledDate(), startMonth, endMonth))
                 .collect(groupingBy(maintenance -> YearMonth.from(maintenance.getScheduledDate())));
@@ -66,13 +69,14 @@ public class MaintenanceService {
 
     private boolean isScheduledDateInRange(LocalDate scheduledDate, YearMonth startMonth, YearMonth endMonth) {
         YearMonth scheduledDateInYearMonthFormat = YearMonth.from(scheduledDate);
-        return startMonth.isBefore(scheduledDateInYearMonthFormat) && endMonth.isAfter(scheduledDateInYearMonthFormat);
+        return (startMonth.isBefore(scheduledDateInYearMonthFormat) || startMonth.equals(scheduledDateInYearMonthFormat)) &&
+               (endMonth.isAfter(scheduledDateInYearMonthFormat) || endMonth.equals(scheduledDateInYearMonthFormat));
     }
 
     private List<MonthlyRequestsReportDTO> produceMonthlyRequestsReport(Map<YearMonth, List<Maintenance>> maintenancesGroupedByScheduledDate, YearMonth startMonth, YearMonth endMonth) {
         List<MonthlyRequestsReportDTO> result = new ArrayList<>();
         YearMonth currentMonth = startMonth;
-        while (currentMonth.isBefore(endMonth)) {
+        while (currentMonth.isBefore(endMonth) || currentMonth.equals(endMonth)) {
             if (maintenanceForGivenYearMonthExist(maintenancesGroupedByScheduledDate, currentMonth)) {
                 result.add(createReportWithRequests(maintenancesGroupedByScheduledDate, currentMonth));
             } else {

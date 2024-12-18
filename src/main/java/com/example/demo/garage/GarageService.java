@@ -84,7 +84,7 @@ public class GarageService {
         Garage garage = Garage.builder()
                 .name(dto.name())
                 .location(dto.location())
-                .city(dto.City())
+                .city(dto.city())
                 .capacity(dto.capacity())
                 .build();
         garageRepository.save(garage);
